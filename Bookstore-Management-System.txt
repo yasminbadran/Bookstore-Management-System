@@ -1,0 +1,482 @@
+import random
+import os
+
+ACCOUNTS_FILE = "accounts.txt"
+
+
+def load_accounts(filename=ACCOUNTS_FILE):
+    accounts = []
+    if not os.path.exists(filename):
+        return accounts
+    with open(filename, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            parts = line.split(",")
+            if len(parts) >= 3:
+                full_name = parts[0].strip()
+                phone = parts[1].strip()
+                password = parts[2].strip()
+                accounts.append({"name": full_name, "phone": phone, "password": password})
+    return accounts
+
+
+def save_account(full_name, phone, password, filename=ACCOUNTS_FILE):
+
+    with open(filename, "a", encoding="utf-8") as f:
+        f.write(f"{full_name},{phone},{password}\n")
+
+
+def valid_phone(phone):
+    return phone.isdigit() and len(phone) == 11 and phone.startswith(("010", "011", "012", "015"))
+
+
+def valid_password(pw):
+
+    return len(pw) >= 6 and pw.isalnum() and pw[0].isupper()
+
+
+
+accounts = load_accounts()
+
+
+logged_user = None
+
+print("-----------------------------------")
+print("Welcome to our Bookstore system")
+print("-----------------------------------")
+
+while True:
+    action = input("Do you want to (Login) or (Register)? ").strip().lower()
+    if action.startswith("l") or "login" in action:
+
+        name_input = input("Enter your full name: ").strip()
+        pw_input = input("Enter your password: ").strip()
+        matched = None
+        for acc in accounts:
+            if acc["name"] == name_input and acc["password"] == pw_input:
+                matched = acc
+                break
+        if matched:
+            print("Login successful. Welcome,", matched["name"])
+            logged_user = matched.copy()
+            break
+        else:
+            print("Login failed. Name or password incorrect. Try again or register.")
+            try_again = input("Try again? (Y/N): ").strip().lower()
+            if not try_again.startswith("y"):
+
+                continue
+
+    elif action.startswith("r") or "register" in action:
+
+        print("Register a new account:")
+        while True:
+            full_name = input("Enter your full name (at least 3 words): ").strip()
+            if len(full_name.split()) >= 3:
+                break
+            else:
+                print("Please enter at least 3 words for your full name.")
+        while True:
+            phone = input("Enter your mobile number (11 digits, starts with 010/011/012/015): ").strip()
+            if not valid_phone(phone):
+                print("Invalid phone number format. Try again.")
+                continue
+
+            exists = any(acc["phone"] == phone for acc in accounts)
+            if exists:
+                print("This phone number is already registered. If it's yours, please login.")
+                use_other = input("Use another phone? (Y/N): ").strip().lower()
+                if use_other.startswith("y"):
+                    continue
+                else:
+                    break
+            else:
+                break
+        while True:
+            password = input("Create a password (>=6 characters, letters/numbers, first char Capital): ").strip()
+            if valid_password(password):
+                break
+            else:
+                print(
+                    "Password invalid. It must be at least 6 chars, only letters/numbers, and start with a capital letter.")
+
+        save_account(full_name, phone, password)
+
+        accounts = load_accounts()
+        logged_user = {"name": full_name, "phone": phone, "password": password}
+        print("Registration successful. You are now logged in as:", full_name)
+        break
+    else:
+        print("Invalid choice. Type Login or Register.")
+
+print("-----------------------------------")
+
+
+name = logged_user["name"] if logged_user else input("Enter your name: ")
+print("-----------------------------------")
+print("Hello", name)
+print("-----------------------------------")
+print("---------Book store--------")
+
+
+while True:
+    operation = input("Do you want to Buy or Borrow a book? (Buy/Borrow): ").strip().lower()
+
+    if "buy" in operation or operation.startswith("buy"):
+        is_borrow = False
+        break
+    elif "borrow" in operation or operation.startswith("borrow"):
+        is_borrow = True
+        break
+    else:
+        print("Invalid input! Please type 'Buy' or 'Borrow'.")
+
+
+gender_input = input("Enter your gender (Male/Female): ").strip().lower()
+if gender_input.startswith("m"):
+    gender = "Male"
+elif gender_input.startswith("f"):
+    gender = "Female"
+else:
+    print("Invalid gender! Please enter Male or Female.")
+    exit()
+
+print("You selected:", gender)
+print("-----------------------------------")
+
+age = int(input("Enter your age: "))
+print("-----------------------------------")
+
+books_prices = {
+    "Fiction": {1: 120, 2: 150, 3: 180},
+    "Adventure": {1: 130, 2: 160, 3: 190},
+    "Sci-Fi": {1: 140, 2: 170, 3: 200},
+    "Comics": {1: 80, 2: 90, 3: 100},
+    "Poetry": {1: 70, 2: 85, 3: 95},
+    "Philosophy": {1: 150, 2: 180, 3: 200},
+    "History": {1: 110, 2: 140, 3: 170},
+    "Biography": {1: 100, 2: 130, 3: 160},
+    "Self-Help": {1: 90, 2: 120, 3: 150},
+    "Technology": {1: 200, 2: 230, 3: 260},
+    "Art": {1: 120, 2: 140, 3: 160},
+    "Psychology": {1: 130, 2: 160, 3: 190},
+    "Romance": {1: 120, 2: 140, 3: 160},
+    "Drama": {1: 130, 2: 150, 3: 170},
+    "Mystery": {1: 140, 2: 160, 3: 180},
+    "Health": {1: 100, 2: 120, 3: 140},
+    "Travel": {1: 110, 2: 130, 3: 150},
+    "Cooking": {1: 120, 2: 140, 3: 160}
+}
+
+total_price = 0
+points = 0
+
+def borrow_available(prob_available=0.65):
+
+
+    return random.random() < prob_available
+
+
+
+def choose_book(category_name):
+    global total_price, points
+    print(f"Choose a book in {category_name}:")
+    print("1=Book1\n2=Book2\n3=Book3")
+
+    choice_input = input("Choose (number or any letter of the book name): ").strip().lower()
+
+    if choice_input in ['1', 'book1']:
+        choice = 1
+    elif choice_input in ['2', 'book2']:
+        choice = 2
+    elif choice_input in ['3', 'book3']:
+        choice = 3
+    else:
+        choice = 1
+
+def choose_book(category_name):
+    global total_price, points
+
+    print(f"Choose a book in {category_name}:")
+    print("1=Book1\n2=Book2\n3=Book3")
+
+    choice_input = input("Choose (number or any letter of the book name): ").strip().lower()
+
+    if choice_input in ['1', 'book1']:
+        choice = 1
+    elif choice_input in ['2', 'book2']:
+        choice = 2
+    elif choice_input in ['3', 'book3']:
+        choice = 3
+    else:
+        choice = 1
+
+
+    if is_borrow:
+        if not borrow_available():
+            print("❌ Sorry! This book is currently out of stock for borrowing.")
+            print("-----------------------------------")
+            return
+
+    if not is_borrow:
+        price = books_prices[category_name][choice]
+        total_price += price
+
+    points += 10
+    print(f"You selected {category_name} {choice}")
+
+    if not is_borrow:
+        print(f"Price for this book: {price} EGP")
+    else:
+        print("✅ This book is borrowed (available).")
+        print("⚠ Please return the book within 3 days or you will be blacklisted!")
+
+    print(f"Total points earned: {points}")
+    print("-----------------------------------")
+
+
+
+def choose_category():
+    if gender == "Male":
+        if 15 <= age <= 35:
+            print("""
+Choose your interest:
+1- Fiction
+2- Adventure
+3- Sci-Fi
+4- Comics
+5- Poetry
+6- Philosophy
+""")
+            adult_interest = input("Choose (number or any letter of the category): ").strip().lower()
+            if adult_interest.startswith('f') or adult_interest == '1':
+                choose_book("Fiction")
+            elif adult_interest.startswith('a') or adult_interest == '2':
+                choose_book("Adventure")
+            elif 'sci' in adult_interest or adult_interest == '3':
+                choose_book("Sci-Fi")
+            elif adult_interest.startswith('c') or adult_interest == '4':
+                choose_book("Comics")
+            elif adult_interest.startswith('p') or adult_interest == '5':
+                choose_book("Poetry")
+            elif adult_interest.startswith('ph') or adult_interest == '6':
+                choose_book("Philosophy")
+        elif 35 < age < 60:
+            print("""
+Choose your interest:
+1- History
+2- Biography
+3- Self-Help
+4- Technology
+5- Art
+6- Psychology
+""")
+            older_interest = input("Choose (number or any letter of the category): ").strip().lower()
+            if older_interest.startswith('h') or older_interest == '1':
+                choose_book("History")
+            elif older_interest.startswith('b') or older_interest == '2':
+                choose_book("Biography")
+            elif older_interest.startswith('s') or older_interest == '3':
+                choose_book("Self-Help")
+            elif older_interest.startswith('t') or older_interest == '4':
+                choose_book("Technology")
+            elif older_interest.startswith('a') or older_interest == '5':
+                choose_book("Art")
+            elif older_interest.startswith('p') or older_interest == '6':
+                choose_book("Psychology")
+
+    elif gender == "Female":
+        if 15 <= age <= 35:
+            print("""
+Choose your interest:
+1- Romance
+2- Drama
+3- Mystery
+4- Comics
+5- Poetry
+6- Philosophy
+""")
+            adult_interest = input("Choose (number or any letter of the category): ").strip().lower()
+            if adult_interest.startswith('r') or adult_interest == '1':
+                choose_book("Romance")
+            elif adult_interest.startswith('d') or adult_interest == '2':
+                choose_book("Drama")
+            elif adult_interest.startswith('m') or adult_interest == '3':
+                choose_book("Mystery")
+            elif adult_interest.startswith('c') or adult_interest == '4':
+                choose_book("Comics")
+            elif adult_interest.startswith('p') or adult_interest == '5':
+                choose_book("Poetry")
+            elif adult_interest.startswith('ph') or adult_interest == '6':
+                choose_book("Philosophy")
+        elif 35 < age < 60:
+            print("""
+Choose your interest:
+1- Health
+2- Travel
+3- Cooking
+4- Technology
+5- Art
+6- Psychology
+""")
+            older_interest = input("Choose (number or any letter of the category): ").strip().lower()
+            if older_interest.startswith('h') or older_interest == '1':
+                choose_book("Health")
+            elif older_interest.startswith('t') or older_interest == '2':
+                choose_book("Travel")
+            elif older_interest.startswith('c') or older_interest == '3':
+                choose_book("Cooking")
+            elif older_interest.startswith('te') or older_interest == '4':
+                choose_book("Technology")
+            elif older_interest.startswith('a') or older_interest == '5':
+                choose_book("Art")
+            elif older_interest.startswith('p') or older_interest == '6':
+                choose_book("Psychology")
+
+
+while True:
+    choose_category()
+    again = input("Do you want another book? (Yes/No): ").strip().lower()
+    if again.startswith("y"):
+        continue
+    elif again.startswith("n"):
+        print(f"Thank you, {name}!")
+        if not is_borrow:
+            print(f"Total price: {total_price} EGP")
+        print(f"Total points earned: {points}")
+
+        if not is_borrow:
+            discount_question = input("Do you want a discount? (Yes/No): ").strip().lower()
+            if discount_question.startswith("y"):
+                user_id = input("Enter your discount ID: ").strip()
+                if len(user_id) == 9 and user_id.startswith("2025") and user_id[4:].isdigit():
+                    discount_percentage = random.randint(5, 70)
+                    discount_amount = total_price * discount_percentage / 100
+                    total_price -= discount_amount
+                    print(f"Congratulations! You got a {discount_percentage}% discount.")
+                    print(f"Discount amount: {discount_amount:.2f} EGP")
+                    print(f"Price after ID discount: {total_price:.2f} EGP")
+                else:
+                    print("Invalid ID. No discount available.")
+
+
+        print("-----------------------------------")
+        delivery = input("Do you want delivery to your governorate? (Yes/No): ").strip().lower()
+        if delivery.startswith("y"):
+
+            if logged_user and logged_user.get("phone"):
+                print(f"Saved phone on your account: {logged_user['phone']}")
+                use_saved = input("Do you want to use this phone number for delivery? (Yes/No): ").strip().lower()
+                if use_saved.startswith("y"):
+                    phone = logged_user["phone"]
+                else:
+
+                    while True:
+                        phone = input("Enter your phone number (11 digits): ").strip()
+                        if valid_phone(phone):
+                            break
+                        else:
+                            print("Invalid phone number! Try again.")
+            else:
+                while True:
+                    full_name = input("Enter your full name (3 words): ").strip()
+                    if len(full_name.split()) >= 3:
+                        break
+                    else:
+                        print("Error! Please enter a valid full name (at least 3 words).")
+
+                while True:
+                    phone = input("Enter your phone number (11 digits): ").strip()
+                    if phone.isdigit() and len(phone) == 11 and phone.startswith(("010", "011", "012", "015")):
+                        break
+                    else:
+                        print("Invalid phone number! Try again.")
+
+
+            if logged_user:
+
+                full_name = logged_user["name"]
+            else:
+
+                pass
+
+            print("""
+Choose your governorate:
+1 - Cairo (35 EGP)
+2 - Giza (30 EGP)
+3 - Alexandria (50 EGP)
+4 - Qalyubia (25 EGP)
+5 - Sharkia (40 EGP)
+6 - Dakahlia (45 EGP)
+7 - Asyut (70 EGP)
+8 - Sohag (80 EGP)
+""")
+            try:
+                gov = int(input("Enter number: "))
+            except:
+                gov = None
+            delivery_prices = {1: 35, 2: 30, 3: 50, 4: 25, 5: 40, 6: 45, 7: 70, 8: 80}
+            if gov in delivery_prices:
+                delivery_cost = delivery_prices[gov]
+                total_price += delivery_cost
+                print("-----------------------------------")
+                print("Delivery Information Confirmed:")
+                print(f"Name: {full_name}")
+                print(f"Phone: {phone}")
+                print(f"Delivery cost added: {delivery_cost} EGP")
+                print("-----------------------------------")
+            else:
+                print("Invalid governorate! No delivery added.")
+        else:
+            print("No delivery selected.")
+
+
+        print("-----------------------------------")
+        if points >= 100:
+            print("🎁 You earned a 50 EGP reward!")
+            if not is_borrow:
+                total_price -= 50
+        elif points >= 50:
+            print("🎁 You earned a 20 EGP reward!")
+            if not is_borrow:
+                total_price -= 20
+        else:
+            print("Not enough points for a loyalty reward.")
+
+
+        while True:
+            payment = input("Choose payment method (Visa / Cash): ").strip().lower()
+            if payment.startswith("v"):
+                print("You selected: Visa payment.")
+                break
+            elif payment.startswith("c"):
+                print("You selected: Cash on delivery.")
+                break
+            else:
+                print("Invalid choice! Please type Visa or Cash.")
+
+        if not is_borrow:
+            print(f"Final Total = {total_price} EGP")
+        print("-----------------------------------")
+
+
+        while True:
+            rating = input("Rate our bookstore from 1 to 10: ").strip()
+            if rating.isdigit() and 1 <= int(rating) <= 10:
+                rating = int(rating)
+                break
+            else:
+                print("Invalid rating! Please enter a number between 1 and 10.")
+
+        print(f"Thank you! Your rating is: {rating}/10 😊")
+        break
+    else:
+        print("Invalid input, exiting the shop.")
+        if not is_borrow:
+            print(f"Your total price is: {total_price} EGP")
+        break
+
+print("-----------------------------------")
+
